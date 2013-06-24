@@ -81,7 +81,7 @@ public class Excel {
 				Vector<AbstractAnnotation> annos = tierimpl.getAnnotations();
 				for (AbstractAnnotation anno : annos){
 					long begin = anno.getBeginTimeBoundary();
-					String value = anno.getValue().trim();
+					String value = anno.getValue().trim().replaceAll(";", ",");
 					String attr = tierimpl.getName().trim();
 					if (m.containsKey(begin)){
 						Map<String, String> mm = m.get(begin);
