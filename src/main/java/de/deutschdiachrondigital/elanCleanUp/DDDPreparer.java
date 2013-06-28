@@ -413,6 +413,7 @@ public class DDDPreparer {
 	private static Collection<String> getFileNamesInDirectory(String path){
 		String files;
 		Collection<String> out = new Vector();	
+		System.out.println("working on path:" + path);
 		File folder = new File(path);
 		File[] listOfFiles = folder.listFiles(); 
 		for (int i = 0; i < listOfFiles.length; i++){ 
