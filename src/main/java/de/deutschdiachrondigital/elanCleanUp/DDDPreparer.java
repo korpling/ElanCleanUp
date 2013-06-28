@@ -135,7 +135,6 @@ public class DDDPreparer {
 			long start = anno.getBeginTimeBoundary();
 			long stop = startTimeOfNextAnno;
 			String val = anno.getValue();
-			System.out.println(start + ", " + stop + ", " + val);
 			m.removeAnnotation(anno);
 			AlignableAnnotation aa = (AlignableAnnotation) m.createAnnotation(start, stop);
 			aa.setValue(val);
