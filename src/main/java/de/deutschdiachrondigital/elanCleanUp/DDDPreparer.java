@@ -360,10 +360,10 @@ public class DDDPreparer {
 					 tier.removeAnnotation(anno);
 				 }				 
 				 
-				 if (fin.contains("Hel_Fitte")){
+				 if (fin.contains("Hel_Fitte") || fin.contains("Gen_")){
 					Map<String, String> out =  new HashMap<String, String>();
 					try {
-						FileReader fr = new FileReader("/media/sf_shared_folder/DDDcorpora/Heliand/mapping.txt");
+						FileReader fr = new FileReader("/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/Genesis/mapping.txt");
 						BufferedReader br = new BufferedReader(fr);
 						String line = null;
 						String k = null;

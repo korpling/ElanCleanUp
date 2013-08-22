@@ -14,7 +14,7 @@ import mpi.eudico.server.corpora.clomimpl.abstr.TranscriptionImpl;
 
 public class MergeEAFs {
 	public static void main(String[] args){
-		String path = "/home/tom/otfrit/";
+		String path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/Genesis/";
 		Collection<String> dirs = getDirNamesInDirectory(path);
 		for (String dir : dirs){
 			System.out.println("fetching files in "+dir);

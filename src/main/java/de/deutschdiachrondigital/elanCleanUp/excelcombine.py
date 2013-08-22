@@ -5,7 +5,7 @@ def writeout(l, p, fname):
   fout.write( "".join(l))
   fout.close()
 
-path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/Genesis/2-excel"
+path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/BenediktinerRegel/4_excel"
 fl = glob.glob(path + "/file-by-file/*.csv")
 
 outlines = []
@@ -24,7 +24,7 @@ for f in fl:
     line = fname + ";" + str(i) + ";" + line
     outlines.append(line)
     i = i + 1
-  if j % 4 == 0:
+  if len(outlines) >= 3000:
     writeout(outlines, path, "tmp_excel" + str(k) + ".csv")
     outlines = []
     k = k + 1
