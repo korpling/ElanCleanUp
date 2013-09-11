@@ -1,12 +1,18 @@
 import glob, codecs
 
+def clean(l):
+  out = []
+  for c in l:
+    out.append(c)
+  return "".join(out)
+
 def writeout(l, p, fname):
   fout = codecs.open(p + "/" + fname, "w", "utf-8")
-  fout.write( "".join(l))
+  fout.write( u"\n".join(l))
   fout.close()
 
-path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/BenediktinerRegel/4_excel"
-fl = glob.glob(path + "/file-by-file/*.csv")
+path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/SteinmeyerRest/3_student"
+fl = glob.glob(path + "/tmp/*.csv")
 
 outlines = []
 
@@ -15,14 +21,16 @@ k = 1
 for f in fl:
   fname = f.split("/")[-1].rstrip(".csv")
   fin = codecs.open(f, "r", "utf-8")
-  lines = fin.readlines()
+  lines = fin.read().split(u"\n")
   fin.close()
   if len(outlines) == 0:
-    outlines.append("fname;id;" + lines[0])
+    outlines.append(u"fname;id;" + lines[0])
   i = 1
   for line in lines[1:]:
-    line = fname + ";" + str(i) + ";" + line
-    outlines.append(line)
+    nline = fname.decode("utf-8")
+    nline = nline + u";" + str(i) + u";"
+    nline = nline + clean(line)
+    outlines.append(nline)
     i = i + 1
   if len(outlines) >= 3000:
     writeout(outlines, path, "tmp_excel" + str(k) + ".csv")
