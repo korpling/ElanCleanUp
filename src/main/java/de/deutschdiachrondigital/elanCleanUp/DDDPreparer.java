@@ -23,17 +23,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import mpi.eudico.client.annotator.commands.SaveSelectionAsEafCA;
-import mpi.eudico.client.annotator.commands.SaveSelectionAsEafCommand;
 import mpi.eudico.server.corpora.clom.Annotation;
-import mpi.eudico.server.corpora.clom.AnnotationCore;
 import mpi.eudico.server.corpora.clom.TimeSlot;
 import mpi.eudico.server.corpora.clom.Transcription;
 import mpi.eudico.server.corpora.clomimpl.abstr.AbstractAnnotation;
 import mpi.eudico.server.corpora.clomimpl.abstr.AlignableAnnotation;
-import mpi.eudico.server.corpora.clomimpl.abstr.RefAnnotation;
 import mpi.eudico.server.corpora.clomimpl.abstr.TierImpl;
-import mpi.eudico.server.corpora.clomimpl.abstr.TimeSlotImpl;
 import mpi.eudico.server.corpora.clomimpl.abstr.TranscriptionImpl;
 import mpi.eudico.server.corpora.clomimpl.type.LinguisticType;
 
@@ -46,74 +41,92 @@ public class DDDPreparer {
 	
 	/**
 	 * @param args[0] properties file elan2bearbeitung
-	 * args[1] main directory of corpus
 	 */
 	public static void main(String[] args) throws Exception {
 		//get properties file
 		FileInputStream in = new FileInputStream(args[0]);
 		Properties prop = new Properties();
 		prop.load(new InputStreamReader(in, "UTF-8"));
-		String inDir = args[1];
-		Collection<String> fnames = getFileNamesInDirectory(inDir + "/4_fertig/");
+		Collection<String> fnames = getFileNamesInDirectory(prop.getProperty("source"));
 		for (String fname : fnames){
-			prepare(inDir, fname, prop);
+			prepare(fname, prop);
 		}
 	}
 		
-	public static void prepare(String inDir, String fname, Properties prop){
+	public static void prepare(String fname, Properties prop){
 		
 		// correct the time slots
-		correctTimeSlots(inDir + "/4_fertig/" + fname);
+		correctTimeSlots(prop.getProperty("source") + fname);
 			
 		// parse the Elan file
-		eaf = new TranscriptionImpl(inDir + "/4_fertig/" + fname);
+		eaf = new TranscriptionImpl(prop.getProperty("source") + fname);
 		System.out.println("working on " + fname);
 		
 		// extract meta data and write to file
-		extractMetaData(fname, prop.getProperty("metadataloc"), inDir + "/meta/");
+		System.out.println("extracting metadata");
+		extractMetaData(fname, prop.getProperty("metadataloc"), prop.getProperty("meta"));
 		
 		// go through the tiers and report issues (e.g. timeslots, weird symbols)
+		System.out.println("resolving issues");
 		reportIssues(fname);
 		
 		// search and replace
+		System.out.println("searching and replacing systematic errors");
 		searchAndReplaces(fetchArrayFromPropFile("searchAndReplace", prop));
 		
-		// create the reference tier "norm" on the basis of a given tier
+		// find the tier that is the basis for the linguistic annotations
 		TierImpl tierTok = (TierImpl) eaf.getTierWithId(prop.getProperty("ling"));
+		
+		// WRITE OUT THIS VERSION OF THE EAF TO A DIRECTORY X_automatic SO THAT THERE 
+		// IS AN UPDATED EAF FILE FOR THE REPO WITH THE DDD-AD ANNOTATION LEVEL NAMES
+		TranscriptionImpl tempeaf = new TranscriptionImpl();
+		tempeaf = eaf;
+		AbstractAnnotation lastToken = (AbstractAnnotation) tierTok.getAnnotations().lastElement();
+		long endtime = lastToken.getEndTimeBoundary();
+		String foutNameAUTO = prop.getProperty("target") + fname;
+		System.out.println("writing out an updated file to " + foutNameAUTO);
+		File file = new File(foutNameAUTO);
+		file.getParentFile().mkdirs();
+		new SaveEAF(tempeaf, (long) 0, (long) endtime, foutNameAUTO);
+		
+		while (!file.exists()){
+			int a = 1 + 1;
+		}
+		
+		// create the reference tier "ling" on the basis of a given tier
+		System.out.println("creating reference tier");
 		tierTok.setName("ling");
 		
 		// create the txt tier which holds the actual words
+		System.out.println("create text tier");
 		createTxtTier(prop.getProperty("edition"), "edition");
 		
 		// rename the remaining tiers
+		System.out.println("renaming the tiers");
 		String[][] translation = fetchArrayFromPropFile("rename", prop);
 		renameTiers(translation);
 		
 		// get rid of the tiers that are not necessary
+		System.out.println("removing tiers");
 		String tiersToBeRemoved[] = prop.getProperty("remove").split(",");
 		removeTiers(tiersToBeRemoved);
 		
 		// fix a markup issue
+		System.out.println("fix markup");
 		fixMarkup();
 		
 		// save the new file
-		AbstractAnnotation lastToken = (AbstractAnnotation) tierTok.getAnnotations().lastElement();
-		long endtime = lastToken.getEndTimeBoundary();
-		String corpusname = "DDD-" + inDir.split("/")[inDir.split("/").length-1];
-		String foutName = inDir + corpusname + "/" + fname;
-		File file = new File(foutName);
+		lastToken = (AbstractAnnotation) tierTok.getAnnotations().lastElement();
+		endtime = lastToken.getEndTimeBoundary();
+		String foutName = prop.getProperty("out") + fname;
+		file = new File(foutName);
 		file.getParentFile().mkdirs();
-		SaveEAF e = new SaveEAF(eaf, (long) 0, (long) endtime, foutName);
-		Vector<TierImpl> tiers = eaf.getTiers();
-		for (TierImpl tier : tiers){
-			System.out.println(tier.getName() + ": " + tier.getNumberOfAnnotations());
-		}
+		new SaveEAF(eaf, (long) 0, (long) endtime, foutName);
 		
 		// write a logfile
 		try {
-			FileUtils.writeStringToFile(new File( inDir + "log.txt"), log);
+			FileUtils.writeStringToFile(new File( prop.getProperty("log")), log);
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 	}
@@ -141,6 +154,7 @@ public class DDDPreparer {
 		 }
 	}
 
+	@SuppressWarnings("rawtypes")
 	private static void extractMetaData(String fname, String metadatalocation, String metaoutloc) {
 		String id = fname.replaceAll(".eaf", "").split("_")[0];
 		Map<String, Map> metadata = csv2map(metadatalocation);
@@ -181,6 +195,7 @@ public class DDDPreparer {
 		makeDocumentSpan(fname.replaceAll(".eaf", ""));
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private static long getEarliestTime() {
 		long earliestTime = 999999999;
 		
@@ -204,6 +219,7 @@ public class DDDPreparer {
 		aa.setValue(textname);
 	}
 
+	@SuppressWarnings("rawtypes")
 	private static Map<String, Map> csv2map(String string) {
 		Map<String, Map> out = null;
 		out = new HashMap<String, Map>();
@@ -213,7 +229,7 @@ public class DDDPreparer {
 			String line = null;
 			String k = null;
 			String v = "NA";
-			String firstline = br.readLine(); 
+			String firstline = br.readLine();
 			while ( (line = br.readLine()) != null )
 			{
 				line = line.replaceAll("\t", " \t");
@@ -228,6 +244,7 @@ public class DDDPreparer {
 				}
 				out.put(mp.get("Textkürzel"), mp);
 			}
+			br.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -284,6 +301,7 @@ public class DDDPreparer {
 		}
 	}
 		
+	@SuppressWarnings("unchecked")
 	private static void reportIssues(String fin){
 		Vector<TierImpl> tiers = eaf.getTiers();
 		for (TierImpl tier : tiers){
@@ -366,13 +384,12 @@ public class DDDPreparer {
 						FileReader fr = new FileReader("/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/Genesis/mapping.txt");
 						BufferedReader br = new BufferedReader(fr);
 						String line = null;
-						String k = null;
-						String v = "NA"; 
 						while ( (line = br.readLine()) != null )
 						{
 							String[] st = line.split("\t");
 							out.put(st[1],st[0]);
 						}
+						br.close();
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -409,6 +426,7 @@ public class DDDPreparer {
 		}
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static Collection<String> getFileNamesInDirectory(String path){
 		String files;
 		Collection<String> out = new Vector();	
@@ -458,6 +476,7 @@ public class DDDPreparer {
 		return array;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static void searchAndReplace(String targetTier, String annoValue, String findValue, String replaceValue, String[] conditions) {
 		TierImpl ctier = (TierImpl) eaf.getTierWithId(targetTier);
 		String fin = eaf.getFullPath().substring(eaf.getFullPath().lastIndexOf("/")+1);
@@ -477,12 +496,7 @@ public class DDDPreparer {
 					String actualCondition = new String("on tier " + condTier + ", position " + direction + ", has the value " + condValue);
 					test = false;
 	
-					TierImpl tierWithCondition = null;
-					Vector<AbstractAnnotation> condAnnos = null;
-					if ( condTier.length() > 0) {
-						tierWithCondition = (TierImpl) eaf.getTierWithId(condTier);
-						condAnnos = tierWithCondition.getAnnotations();
-					}
+					TierImpl tierWithCondition = (TierImpl) eaf.getTierWithId(condTier);
 				
 					// check direction
 					if (direction.equals("left") & i > 0){
@@ -522,6 +536,7 @@ public class DDDPreparer {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static void createTxtTier(String levelname, String tiername){
 		LinguisticType type = new LinguisticType("main-tier");
 		TierImpl t = new TierImpl(tiername, null, (Transcription) eaf, type);
@@ -599,6 +614,7 @@ public class DDDPreparer {
 		return out;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static void renameTiers(String[][] m){
 		for (int i = 0; i < m.length; i++) {
 	        String origName = m[i][0].trim();
@@ -633,6 +649,7 @@ public class DDDPreparer {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static void removeTiers(String[] toBeRemoved){
 		for (String remove : toBeRemoved){
 			remove = remove.trim();

@@ -11,8 +11,8 @@ def writeout(l, p, fname):
   fout.write( u"\n".join(l))
   fout.close()
 
-path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/SteinmeyerRest/3_student"
-fl = glob.glob(path + "/tmp/*.csv")
+path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/TatianLateinTest"
+fl = glob.glob(path + "/4_fertig/*.csv")
 
 outlines = []
 
@@ -32,7 +32,7 @@ for f in fl:
     nline = nline + clean(line)
     outlines.append(nline)
     i = i + 1
-  if len(outlines) >= 3000:
+  if len(outlines) >= 4000:
     writeout(outlines, path, "tmp_excel" + str(k) + ".csv")
     outlines = []
     k = k + 1
