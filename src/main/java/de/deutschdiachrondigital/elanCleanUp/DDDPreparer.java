@@ -164,10 +164,10 @@ public class DDDPreparer {
 		String sprache = "Sprache=" +metadata.get(id).get("Sprache 1") + ", " + metadata.get(id).get("Sprache 2");
 		String sprachgebiet = "Sprachgebiet=" + metadata.get(id).get("sprachlicher Großraum 1") + ", " + metadata.get(id).get("sprachlicher Großraum 2");
 		String sprachlandschaft = "Sprachlandschaft=" + metadata.get(id).get("Sprachlandschaft 1") + ", " + metadata.get(id).get("Sprachlandschaft 2");
-		String lokalisierung = "Lokalisierung=" + metadata.get(id).get("Lokalisierung");
+		String lokalisierung = "Lokalisierung=" + metadata.get(id).get("Schreibort");
 		String entstehungszeit = "Entstehungszeit=" + metadata.get(id).get("Entstehungszeit");
 		String datierung = "Datierung=" + metadata.get(id).get("genauere Datierung");
-		String referenz = "Referenz=" + metadata.get(id).get("Marburger/Paderborner Repertorium (andere Referenzen)");
+		String referenz = "Referenz=" + metadata.get(id).get("Handschriftencensus/andere Referenzen");
 		try{
 			File file = new File(metaoutloc + id +".txt");
 			file.getParentFile().mkdirs();
@@ -378,10 +378,10 @@ public class DDDPreparer {
 					 tier.removeAnnotation(anno);
 				 }				 
 				 
-				 if (fin.contains("Hel_Fitte") || fin.contains("Gen_")){
+				 if (fin.contains("") || fin.contains("Gen_")){
 					Map<String, String> out =  new HashMap<String, String>();
 					try {
-						FileReader fr = new FileReader("/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/Genesis/mapping.txt");
+						FileReader fr = new FileReader("/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/AS-mapping.txt");
 						BufferedReader br = new BufferedReader(fr);
 						String line = null;
 						while ( (line = br.readLine()) != null )
@@ -484,6 +484,8 @@ public class DDDPreparer {
 				
 		for (int i = 0; i < annos.size(); i++){
 			AbstractAnnotation targetAnno = annos.get(i);
+			String val = targetAnno.getValue();
+			targetAnno.setValue(val.trim());
 			AbstractAnnotation compareAnno = null;
 			boolean test = true;
 			String condition = "";

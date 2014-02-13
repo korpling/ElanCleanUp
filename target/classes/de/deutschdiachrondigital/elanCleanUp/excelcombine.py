@@ -11,8 +11,8 @@ def writeout(l, p, fname):
   fout.write( u"\n".join(l))
   fout.close()
 
-path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/TatianLateinTest"
-fl = glob.glob(path + "/4_fertig/*.csv")
+path = "/media/sf_shared_folder/DDDcorpora/KONVERTIERUNGSPLACE/Physiologus/"
+fl = glob.glob(path + "3_excel/file-by-file/*.csv")
 
 outlines = []
 
