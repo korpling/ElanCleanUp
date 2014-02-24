@@ -39,12 +39,10 @@ public class DDDPreparer {
 	private static TranscriptionImpl eaf;
 	private static String log = "";
 	
-	/**
-	 * @param args[0] properties file elan2bearbeitung
-	 */
-	public static void main(String[] args) throws Exception {
+
+	public static void DDDPreparerMain(String fin) throws Exception {
 		//get properties file
-		FileInputStream in = new FileInputStream(args[0]);
+		FileInputStream in = new FileInputStream(fin);
 		Properties prop = new Properties();
 		prop.load(new InputStreamReader(in, "UTF-8"));
 		Collection<String> fnames = getFileNamesInDirectory(prop.getProperty("source"));
@@ -59,8 +57,8 @@ public class DDDPreparer {
 		correctTimeSlots(prop.getProperty("source") + fname);
 			
 		// parse the Elan file
-		eaf = new TranscriptionImpl(prop.getProperty("source") + fname);
 		System.out.println("working on " + fname);
+		eaf = new TranscriptionImpl(prop.getProperty("source") + fname);
 		
 		// extract meta data and write to file
 		System.out.println("extracting metadata");
@@ -76,22 +74,6 @@ public class DDDPreparer {
 		
 		// find the tier that is the basis for the linguistic annotations
 		TierImpl tierTok = (TierImpl) eaf.getTierWithId(prop.getProperty("ling"));
-		
-		// WRITE OUT THIS VERSION OF THE EAF TO A DIRECTORY X_automatic SO THAT THERE 
-		// IS AN UPDATED EAF FILE FOR THE REPO WITH THE DDD-AD ANNOTATION LEVEL NAMES
-		TranscriptionImpl tempeaf = new TranscriptionImpl();
-		tempeaf = eaf;
-		AbstractAnnotation lastToken = (AbstractAnnotation) tierTok.getAnnotations().lastElement();
-		long endtime = lastToken.getEndTimeBoundary();
-		String foutNameAUTO = prop.getProperty("target") + fname;
-		System.out.println("writing out an updated file to " + foutNameAUTO);
-		File file = new File(foutNameAUTO);
-		file.getParentFile().mkdirs();
-		new SaveEAF(tempeaf, (long) 0, (long) endtime, foutNameAUTO);
-		
-		while (!file.exists()){
-			int a = 1 + 1;
-		}
 		
 		// create the reference tier "ling" on the basis of a given tier
 		System.out.println("creating reference tier");
@@ -116,10 +98,10 @@ public class DDDPreparer {
 		fixMarkup();
 		
 		// save the new file
-		lastToken = (AbstractAnnotation) tierTok.getAnnotations().lastElement();
-		endtime = lastToken.getEndTimeBoundary();
+		AbstractAnnotation lastToken = (AbstractAnnotation) tierTok.getAnnotations().lastElement();
+		float endtime = lastToken.getEndTimeBoundary();
 		String foutName = prop.getProperty("out") + fname;
-		file = new File(foutName);
+		File file = new File(foutName);
 		file.getParentFile().mkdirs();
 		new SaveEAF(eaf, (long) 0, (long) endtime, foutName);
 		
@@ -128,7 +110,7 @@ public class DDDPreparer {
 			FileUtils.writeStringToFile(new File( prop.getProperty("log")), log);
 		} catch (IOException e1) {
 			e1.printStackTrace();
-		}
+		} 
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -190,9 +172,9 @@ public class DDDPreparer {
 		}
 		// ad the document name as a span
 		// for kleinere denkmaeler
-		//makeDocumentSpan((String) metadata.get(id).get("Text: Name (weitere Namen)"));
+		makeDocumentSpan((String) metadata.get(id).get("Text: Name (weitere Namen)"));
 		//for the rest
-		makeDocumentSpan(fname.replaceAll(".eaf", ""));
+		//makeDocumentSpan(fname.replaceAll(".eaf", ""));
 	}
 	
 	@SuppressWarnings("rawtypes")
@@ -485,53 +467,55 @@ public class DDDPreparer {
 		for (int i = 0; i < annos.size(); i++){
 			AbstractAnnotation targetAnno = annos.get(i);
 			String val = targetAnno.getValue();
-			targetAnno.setValue(val.trim());
-			AbstractAnnotation compareAnno = null;
-			boolean test = true;
-			String condition = "";
+			if (val != null){
+				targetAnno.setValue(val.trim());
 
-			for (int c = 0; c < conditions.length-1; c=c+3){
-				if (test){
-					String direction = conditions[c].trim();
-					String condTier = conditions[c+1].trim();
-					String condValue = conditions[c+2].trim();
-					String actualCondition = new String("on tier " + condTier + ", position " + direction + ", has the value " + condValue);
-					test = false;
-	
-					TierImpl tierWithCondition = (TierImpl) eaf.getTierWithId(condTier);
-				
-					// check direction
-					if (direction.equals("left") & i > 0){
-						compareAnno = (AbstractAnnotation) tierWithCondition.getAnnotationBefore(targetAnno.getBeginTimeBoundary());
-					}	
-					if (direction.equals("right") & i < annos.size()){
-						compareAnno = (AbstractAnnotation) tierWithCondition.getAnnotationAfter(targetAnno.getEndTimeBoundary());
-					}
-					if (direction.equals("align")){
-						compareAnno = (AbstractAnnotation) tierWithCondition.getAnnotationAtTime(targetAnno.getBeginTimeBoundary());
-					}
-				
-					// check the comparison
-					if (compareAnno != null){
-						if (compareAnno.getValue().matches("\\b(" + condValue + ")\\b")){
-							test = true;
-							condition = condition + actualCondition + "; ";
+				AbstractAnnotation compareAnno = null;
+				boolean test = true;
+				String condition = "";
+				for (int c = 0; c < conditions.length-1; c=c+3){
+					if (test){
+						String direction = conditions[c].trim();
+						String condTier = conditions[c+1].trim();
+						String condValue = conditions[c+2].trim();
+						String actualCondition = new String("on tier " + condTier + ", position " + direction + ", has the value " + condValue);
+						test = false;
+		
+						TierImpl tierWithCondition = (TierImpl) eaf.getTierWithId(condTier);
+					
+						// check direction
+						if (direction.equals("left") & i > 0){
+							compareAnno = (AbstractAnnotation) tierWithCondition.getAnnotationBefore(targetAnno.getBeginTimeBoundary());
+						}	
+						if (direction.equals("right") & i < annos.size()){
+							compareAnno = (AbstractAnnotation) tierWithCondition.getAnnotationAfter(targetAnno.getEndTimeBoundary());
+						}
+						if (direction.equals("align")){
+							compareAnno = (AbstractAnnotation) tierWithCondition.getAnnotationAtTime(targetAnno.getBeginTimeBoundary());
+						}
+					
+						// check the comparison
+						if (compareAnno != null){
+								if (compareAnno.getValue().matches("\\b(" + condValue + ")\\b")){
+									test = true;
+									condition = condition + actualCondition + "; ";
+								}
 						}
 					}
 				}
-			}
-			if (test){
-				if (targetAnno.getValue().matches("\\b(" + annoValue + ")\\b")){
-					String targetValue = targetAnno.getValue();
-					String newTargetValue = targetValue.replaceFirst(findValue, replaceValue);
-					if (!targetValue.equals(newTargetValue)){
-						targetAnno.setValue(newTargetValue);
-						log = log + ("CHANGE: " + fin + ":" + 
-							targetTier + ":" + 
-							Milliseconds2HumanReadable((int) targetAnno.getBeginTimeBoundary()) + ":" + 
-							Milliseconds2HumanReadable((int) targetAnno.getEndTimeBoundary()) + ":" + 
-							targetValue.trim() + 
-							" | changed this value to " + newTargetValue + " because I found " + findValue + " with the condition " + condition + "\n");
+				if (test){
+					if (targetAnno.getValue().matches("\\b(" + annoValue + ")\\b")){
+						String targetValue = targetAnno.getValue();
+						String newTargetValue = targetValue.replaceFirst(findValue, replaceValue);
+						if (!targetValue.equals(newTargetValue)){
+							targetAnno.setValue(newTargetValue);
+							log = log + ("CHANGE: " + fin + ":" + 
+								targetTier + ":" + 
+								Milliseconds2HumanReadable((int) targetAnno.getBeginTimeBoundary()) + ":" + 
+								Milliseconds2HumanReadable((int) targetAnno.getEndTimeBoundary()) + ":" + 
+								targetValue.trim() + 
+								" | changed this value to " + newTargetValue + " because I found " + findValue + " with the condition " + condition + "\n");
+						}
 					}
 				}
 			}

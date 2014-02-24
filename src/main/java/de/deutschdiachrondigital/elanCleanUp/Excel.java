@@ -21,10 +21,10 @@ import mpi.eudico.server.corpora.clomimpl.abstr.TranscriptionImpl;
 
 public class Excel {
 	
-	public static void main(String[] args) throws Exception {
-		Collection<String> fnames = getFileNamesInDirectory(args[0]);
+	public static void ExcelMain(String param) throws Exception {
+		Collection<String> fnames = getFileNamesInDirectory(param);
 		for (String fname : fnames){
-			excelify(args[0] + fname);
+			excelify(param + fname);
 		}
 	}
 	
